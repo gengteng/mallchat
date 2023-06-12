@@ -1,4 +1,4 @@
-![](./doc/logo.png)
+![](./doc/logo-256x256.png)
 
 # MallChat Rust 后端实现
 
