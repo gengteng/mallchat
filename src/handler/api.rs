@@ -190,7 +190,8 @@ mod tests {
         println!(
             "{}",
             serde_json::to_string(
-                &ApiError::custom_err::<()>(StatusCode::BAD_REQUEST, "test error").unwrap_err()
+                &ApiError::custom_err::<()>(StatusCode::BAD_REQUEST, "test error")
+                    .expect_err("get error")
             )?
         );
 
