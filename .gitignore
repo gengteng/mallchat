@@ -1,0 +1,8 @@
+/target
+/Cargo.lock
+/.idea
+/log
+/Secrets.toml
+/Secrets.dev.toml
+/server.toml
+/server.dev.toml

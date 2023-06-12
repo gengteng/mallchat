@@ -1,0 +1,32 @@
+[http]
+static_files_path = "html"
+port = 8080
+jwt_secret = "omOFP+Ejj/r+u4XeHr+KImZNtP0AlNqgvjLe3C5qics="
+
+[wx]
+# 微信公众平台 AppID
+app_id = "xxxxxxxxxx"
+# 微信公众平台 AppSecret
+app_secret = "xxxxxxxx"
+# 微信公众平台 token
+token = "token"
+# 微信公众平台 EncodingAesKey，43 字节的无等号的 base64 格式字符串
+encoding_aes_key = "aes-key"
+
+[storage]
+host = "127.0.0.1"
+port = 3306
+username = "root"
+password = "123456"
+database = "mallchat"
+
+[cache]
+host = "127.0.0.1"
+port = 6379
+password = "123456"
+
+[log]
+level = "INFO"
+path = "log"
+trigger_size = 1048576
+archived_count = 32
