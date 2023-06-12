@@ -706,12 +706,13 @@ mod tests {
     use crate::weixin::{AccessToken, WxResult};
 
     #[test]
-    fn wx_result() {
+    fn wx_result() -> anyhow::Result<()> {
         let success = r#"{"access_token":"ACCESS_TOKEN","expires_in":7200}"#;
         let error = r#"{"errcode":40013,"errmsg":"invalid appid"}"#;
 
-        let success = serde_json::from_str::<WxResult<AccessToken>>(success).unwrap();
-        let error = serde_json::from_str::<WxResult<AccessToken>>(error).unwrap();
+        let success = serde_json::from_str::<WxResult<AccessToken>>(success)?;
+        let error = serde_json::from_str::<WxResult<AccessToken>>(error)?;
         println!("{:?}\n{:?}", success, error);
+        Ok(())
     }
 }

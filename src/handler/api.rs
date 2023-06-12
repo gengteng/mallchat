@@ -182,13 +182,10 @@ mod tests {
 
         println!(
             "{}",
-            serde_json::to_string(
-                &ApiValue::data(Data {
-                    a: 1,
-                    b: String::new(),
-                })
-                .unwrap()
-            )?
+            serde_json::to_string(&ApiValue::data(Data {
+                a: 1,
+                b: String::new(),
+            })?)?
         );
         println!(
             "{}",
@@ -197,14 +194,11 @@ mod tests {
             )?
         );
 
-        println!("{}", serde_json::to_string(&ApiValue::success().unwrap())?);
+        println!("{}", serde_json::to_string(&ApiValue::success()?)?);
+        println!("{}", serde_json::to_string(&ApiValue::nullable(12)?)?);
         println!(
             "{}",
-            serde_json::to_string(&ApiValue::nullable(12).unwrap())?
-        );
-        println!(
-            "{}",
-            serde_json::to_string(&ApiValue::<Option<i32>>::nullable(None).unwrap())?
+            serde_json::to_string(&ApiValue::<Option<i32>>::nullable(None)?)?
         );
 
         Ok(())
