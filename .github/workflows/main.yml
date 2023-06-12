@@ -57,7 +57,7 @@ jobs:
           components: clippy
       - uses: actions-rs/clippy-check@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.COVERALLS_TOKEN }}
           args: --all-targets --all-features --workspace -- -D warnings
 
   coverage:
@@ -84,5 +84,5 @@ jobs:
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@1.1.3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.COVERALLS_TOKEN }}
           path-to-lcov: './lcov.info'
