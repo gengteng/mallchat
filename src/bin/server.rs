@@ -27,7 +27,7 @@ mod local {
             http,
             wx,
             storage,
-            cache,
+            cache: _,
             log,
         } = config;
 
