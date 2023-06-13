@@ -2,6 +2,15 @@
 
 # MallChat Rust 后端实现
 
+[![LANGUAGE](https://img.shields.io/badge/Language-Rust-dea584)](https://www.rust-lang.org/)
+[![LICENSE](https://img.shields.io/badge/license-Apache-2)](https://github.com/gengteng/mallchat/blob/main/LICENSE)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/gengteng/mallchat)
+[![dependency status](https://deps.rs/repo/github/gengteng/mallchat/status.svg)](https://deps.rs/repo/github/gengteng/mallchat)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/mallchat/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/mallchat/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/gengteng/mallchat/badge.svg?branch=main)](https://coveralls.io/github/gengteng/mallchat?branch=main)
+
+----
+
 [WIP] 该项目处于开发中，功能不完整，欢迎贡献代码。
 
 详细介绍见 Java 实现的后端 [MallChat](https://github.com/zongzibinbin/MallChat)
