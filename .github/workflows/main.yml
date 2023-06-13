@@ -79,6 +79,7 @@ jobs:
         env:
           RUST_TEST_THREADS: 4
         with:
+          version: 0.25.2
           args: --implicit-test-threads --ignore-tests --out Lcov
 
       - name: Coveralls GitHub Action
