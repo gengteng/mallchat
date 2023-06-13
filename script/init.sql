@@ -4,6 +4,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP DATABASE IF EXISTS mallchat;
 CREATE DATABASE mallchat collate utf8mb4_unicode_ci;
 
+USE mallchat;
+
 -- ----------------------------
 -- Table structure for item_config
 -- ----------------------------
