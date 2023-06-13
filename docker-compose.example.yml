@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  storage:
+    image: mysql
+    container_name: mallchat-mysql
+    restart: always
+    volumes:
+      - "./script/init.sql:/docker-entrypoint-initdb.d/init.sql"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    stop_signal: SIGTERM
+
+  cache:
+    image: redis
+    container_name: mallchat-redis
+    restart: always
+    sysctls:
+      net.core.somaxconn: 1024
+    command: redis-server --requirepass 123456
+    stop_signal: SIGTERM
+
+  mallchat:
+    image: mallchat
+    container_name: mallchat
+    ports:
+      - "8080:8080"
+    environment:
+      MALLCHAT__WX__APP_ID: "XXXXXXXXXXXXXXXXXX"
+      MALLCHAT__WX__APP_SECRET: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      MALLCHAT__WX__TOEKN: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      MALLCHAT__WX__ENCODING_AES_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      MALLCHAT__STORAGE__HOST: "storage"
+      MALLCHAT__CACHE__HOST: "cache"
+    links:
+      - storage
+      - cache
+    depends_on:
+      - storage
+      - cache
+    stop_signal: SIGTERM

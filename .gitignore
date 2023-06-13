@@ -6,4 +6,5 @@
 /Secrets.dev.toml
 /server.toml
 /server.dev.toml
+/docker-compose.yml
 /lcov.info

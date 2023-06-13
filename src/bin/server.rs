@@ -40,6 +40,7 @@ mod local {
 
         let key = JwtKeys::try_from(http.jwt_secret.as_str())?;
         let wx_client = WxClient::new(wx).await?;
+        tracing::info!(app_id = %wx_client.app_id(), "Retrieve weixin acccess token.");
 
         let addr = SocketAddr::from(([0, 0, 0, 0], http.port));
         tracing::info!(%addr, "Server start.");
