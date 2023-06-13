@@ -34,9 +34,13 @@ mod local {
         let _logger = log.init("mallchat", ".", offset, true).await?;
 
         tracing::info!(?storage, "Connect to database.");
-        let _storage = storage.connect().await?; // TODO use this storage
-        tracing::info!(?cache, "Connect to redis.");
-        let _cache = cache.connect().await?; // TODO use this cache
+        // TODO use this storage
+        let _storage = storage.connect().await?;
+
+        // TODO use this cache
+        // tracing::info!(?cache, "Connect to redis.");
+        // TODO use this cache
+        //let _cache = cache.connect().await?;
 
         let key = JwtKeys::try_from(http.jwt_secret.as_str())?;
         let wx_client = WxClient::new(wx).await?;
