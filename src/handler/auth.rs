@@ -10,6 +10,7 @@ use axum::http::StatusCode;
 use axum::{async_trait, Extension, RequestPartsExt, TypedHeader};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 /// JWT 使用的加解密 KEY
@@ -50,12 +51,17 @@ impl JwtKeys {
     }
     /// 验证并获取 Claims
     pub fn verify(&self, token: &str) -> Result<Claims, ApiError> {
-        Ok(jsonwebtoken::decode(token, self.decoding_key(), &Validation::default())?.claims)
+        // 不对exp字段、过期时间做校验？？？
+        // MallChat 为什么不使用标准的 Claims
+        let mut validation = Validation::default();
+        validation.required_spec_claims = HashSet::new();
+        validation.validate_exp = false;
+        Ok(jsonwebtoken::decode(token, self.decoding_key(), &validation)?.claims)
     }
 }
 
 /// 存储到 JWT 中的数据
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Claims {
     /// 用户 ID
@@ -106,4 +112,22 @@ pub fn current_millisecond() -> i64 {
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("Clock may have gone backwards.");
     duration.as_millis() as i64
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::handler::auth::{current_millisecond, Claims, JwtKeys};
+
+    #[test]
+    fn jwt() -> anyhow::Result<()> {
+        let keys = JwtKeys::try_from("omOFP+Ejj/r+u4XeHr+KImZNtP0AlNqgvjLe3C5qics=")?;
+        let claims = Claims {
+            uid: 12,
+            create_time: current_millisecond(),
+        };
+        let token = keys.sign(&claims)?;
+        let claims_verified = keys.verify(&token)?;
+        assert_eq!(claims, claims_verified);
+        Ok(())
+    }
 }
