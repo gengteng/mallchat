@@ -20,6 +20,7 @@ RUN cargo build --release --no-default-features
 
 FROM debian:buster-slim AS target
 WORKDIR /mallchat
+COPY --from=builder /mallchat/html html
 COPY --from=builder /mallchat/target/release/mallchat .
 COPY --from=builder /mallchat/server.example.toml server.toml
 
