@@ -4,64 +4,200 @@ use axum::Extension;
 use parking_lot::RwLock;
 use std::hash::{Hash, Hasher};
 use std::net::SocketAddr;
+use std::num::NonZeroUsize;
 use std::sync::{Arc, Weak};
 
 use crate::storage::model::prelude::User;
+use crate::weixin::WxClient;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{ConnectInfo, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use dashmap::DashMap;
+use serde::{Deserialize, Serialize};
 use slab::Slab;
 use tokio::sync::mpsc::{Receiver, Sender};
+
+const EXPIRE_SECONDS: u64 = 60 * 60;
 
 /// 建立 WebSocket 连接
 pub async fn websocket_on_connect(
     ws: WebSocketUpgrade,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(session_manager): Extension<SessionManager>,
+    Extension(wx_client): Extension<WxClient>,
 ) -> impl IntoResponse {
-    let receiver = session_manager.accept(addr);
+    let (id, receiver) = session_manager.accept(addr);
     tracing::info!("Websocket connection from {}", addr);
-    ws.on_upgrade(move |socket| handle_websocket(addr, socket, receiver))
+    ws.on_upgrade(move |socket| handle_websocket(id, addr, socket, receiver, wx_client))
 }
 
 // 处理 WebSocket 连接
 async fn handle_websocket(
+    id: usize,
     addr: SocketAddr,
     mut socket: WebSocket,
     mut receiver: Receiver<Message>,
+    wx_client: WxClient,
 ) {
+    let Some(id) = NonZeroUsize::new(id) else {
+        tracing::error!(%id, %addr, "WebSocket id must be a nonzero usize");
+        return;
+    };
     loop {
         tokio::select! {
             recv = socket.recv() => {
                 let Some(result) = recv else {
-                    tracing::info!(%addr, "WebSocket closed by client.");
+                    tracing::info!(%id, %addr, "WebSocket closed by client.");
                     return;
                 };
 
                 let message: axum::extract::ws::Message = match result {
                     Ok(message) => message,
                     Err(error) => {
-                        tracing::error!(%error, "Received error from websocket.");
+                        tracing::error!(%id, %error, "Received error from websocket.");
                         return;
                     }
                 };
 
-                tracing::info!(?message, "Received message from websocket.");
+                tracing::info!(%id, ?message, "Received message from websocket.");
+                match message {
+                    Message::Text(json) => {
+                        let req = match serde_json::from_str::<Req>(&json) {
+                            Ok(req) => req,
+                            Err(error) => {
+                                tracing::error!(%id, %error, %json, "Failed to deserialize json request from client.");
+                                break;
+                            }
+                        };
+
+                        match req  {
+                            Req {
+                                r#type: ReqType::Heartbeat,
+                                ..
+                            } => {
+                                // do nothing
+                            }
+                            Req {
+                                r#type: ReqType::Login,
+                                ..
+                            } => {
+                                match wx_client.get_qrcode_tick_by_id(EXPIRE_SECONDS, false, id).await {
+                                    Ok(ticket) => {
+                                        let resp = Resp {
+                                            r#type: RespType::LoginUrl,
+                                            data: LoginUrl {
+                                                login_url: ticket.url
+                                            }
+                                        };
+                                        match serde_json::to_string(&resp) {
+                                            Ok(json) => {
+                                                if let Err(error) = socket.send(Message::Text(json)).await {
+                                                    tracing::error!(%id, %addr, %error, ?resp, "Failed to send response");
+                                                    break;
+                                                }
+                                            }
+                                            Err(error) => {
+                                                tracing::error!(%id, %addr, %error, ?resp, "Failed to serialize response");
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    Err(error) => {
+                                        tracing::error!(%id, %error, "Failed to get QRCode tick by id");
+                                    }
+                                }
+                            }
+                            Req {
+                                r#type: ReqType::Authorize,
+                                data: Some(data),
+                            } => {
+                                tracing::info!(%id, %data, "Received authorize request");
+                            }
+                            unexpected_req => {
+                                tracing::warn!(%id, ?unexpected_req, "Received unexpected request from websocket");
+                            }
+                        }
+                    }
+                    Message::Ping(bytes) => {
+                        if let Err(error) = socket.send(Message::Pong(bytes)).await {
+                            tracing::error!(%id, %error, "Failed to send pong back.");
+                            break;
+                        }
+                    }
+                    unexpected_message => {
+                        tracing::warn!(%id, ?unexpected_message, "Received unexpected message from websocket");
+                    }
+                }
             }
             to_send = receiver.recv() => {
                 let Some(message) = to_send else {
-                    tracing::info!(%addr, "Sender dropped by server.");
+                    tracing::info!(%id, %addr, "Sender dropped by server.");
                     break;
                 };
 
                 if let Err(error) = socket.send(message).await {
-                    tracing::error!(%error, "Failed to send message to client");
+                    tracing::error!(%id, %error, "Failed to send message to client");
                     break;
                 }
             }
         }
     }
+}
+
+/// WebSocket 请求
+///
+/// btw: 按照 Java 的方式实现太弱了，没有**和类型**
+#[derive(Debug, Deserialize)]
+pub struct Req {
+    /// 请求类型
+    r#type: ReqType,
+    /// 请求数据
+    data: Option<String>,
+}
+
+/// WebSocket 请求类型
+#[derive(Debug, serde_repr::Deserialize_repr)]
+#[repr(u8)]
+pub enum ReqType {
+    /// 登录
+    Login = 1,
+    /// 心跳
+    Heartbeat = 2,
+    /// 登录
+    Authorize = 3,
+}
+
+/// WebSocket 响应类型
+#[derive(Debug, serde_repr::Serialize_repr)]
+#[repr(u8)]
+pub enum RespType {
+    /// 登录二维码返回
+    LoginUrl = 1,
+    /// 用户扫描成功等待授权
+    LoginScanSuccess = 2,
+    /// 用户登录成功返回用户信息
+    LoginSuccess = 3,
+}
+
+/// WebSocket 响应
+#[derive(Debug, Serialize)]
+pub struct Resp<T> {
+    r#type: RespType,
+    data: T,
+}
+
+/// 登录 Url
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginUrl {
+    login_url: String,
+}
+
+/// 登录认证
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Authorize {
+    token: String,
 }
 
 /// 角色
@@ -105,9 +241,10 @@ pub struct SessionManager {
 
 impl SessionManager {
     /// 接收一个 WebSocket 连接
-    pub fn accept(&self, ip_addr: SocketAddr) -> Receiver<Message> {
+    pub fn accept(&self, ip_addr: SocketAddr) -> (usize, Receiver<Message>) {
         let id = self.id_gen.generate();
         let (sender, receiver) = tokio::sync::mpsc::channel(32);
+        let ws_id = id.id();
         self.sessions.insert(
             id.id(),
             Session {
@@ -117,7 +254,7 @@ impl SessionManager {
                 sender,
             },
         );
-        receiver
+        (ws_id, receiver)
     }
 }
 

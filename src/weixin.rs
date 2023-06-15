@@ -9,7 +9,7 @@ use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha1::{Digest, Sha1};
 use std::fmt::{Debug, Display, Formatter};
-use std::num::NonZeroU32;
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -137,14 +137,14 @@ impl WxClient {
         &self,
         expire_seconds: impl Into<Option<u64>>,
         limit: bool,
-        scene_id: NonZeroU32,
+        scene_id: NonZeroUsize,
     ) -> anyhow::Result<QrCodeTicket> {
         self.update_access_token().await?;
         let read = self.access_token.read().await;
         let access_token = read.query();
         #[derive(Serialize)]
         pub struct Scene {
-            scene_id: NonZeroU32,
+            scene_id: NonZeroUsize,
         }
         #[derive(Serialize)]
         struct ActionInfo {
