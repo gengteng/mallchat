@@ -11,7 +11,8 @@ use serde::Deserialize;
 use validator::Validate;
 
 use crate::weixin::{
-    WxClient, WxEncryptedRawXmlMessage, WxMessage, WxRawXmlMessage, WxServerParam,
+    WxClient, WxEncryptedRawXmlMessage, WxEvent, WxEventType, WxMessage, WxMessageData,
+    WxRawXmlMessage, WxServerParam,
 };
 
 /// 微信 API 相关路由
@@ -104,6 +105,31 @@ pub async fn wx_post(
                 };
 
             tracing::info!(%from_app_id, ?message, "Received a encrypted message from weixin.");
+            if let WxMessageData::Event { event } = &message.data {
+                if let WxEvent {
+                    event: event @ WxEventType::Subscribe,
+                    event_key: Some(event_key),
+                    ticket: Some(ticket),
+                }
+                | WxEvent {
+                    event: event @ WxEventType::Scan,
+                    event_key: Some(event_key),
+                    ticket: Some(ticket),
+                } = event
+                {
+                    const EVENT_KEY_PREFIX: &str = "qrscene_";
+                    let event_key: usize =
+                        match if let Some(stripped) = event_key.strip_prefix(EVENT_KEY_PREFIX) {
+                            stripped.parse()
+                        } else {
+                            event_key.parse()
+                        } {
+                            Ok(event_key) => event_key,
+                            Err(error) => return (StatusCode::BAD_REQUEST, error.to_string()),
+                        };
+                    tracing::info!(?event, %event_key, %ticket, "Received event");
+                }
+            }
             (StatusCode::OK, String::new())
         } else {
             (

@@ -236,6 +236,9 @@ pub enum WxMessageType {
     /// 短视频
     #[serde(rename = "shortvideo")]
     ShortVideo,
+    /// 事件
+    #[serde(rename = "event")]
+    Event,
 }
 
 impl Serialize for WxMessageType {
@@ -249,6 +252,7 @@ impl Serialize for WxMessageType {
             WxMessageType::Video => "video",
             WxMessageType::Voice => "voice",
             WxMessageType::ShortVideo => "shortvideo",
+            WxMessageType::Event => "event",
         })
     }
 }
@@ -319,9 +323,12 @@ pub struct WxRawXmlMessage {
     pub format: Option<String>,
     pub recognition: Option<String>,
     pub thumb_media_id: Option<String>,
-    pub msg_id: i64,
+    pub msg_id: Option<i64>,
     pub msg_data_id: Option<String>,
     pub idx: Option<String>,
+    pub event: Option<String>,
+    pub event_key: Option<String>,
+    pub ticket: Option<String>,
 }
 
 /// 消息
@@ -336,7 +343,7 @@ pub struct WxMessage {
     /// 消息数据
     pub data: WxMessageData,
     /// 消息id，64位整型
-    pub msg_id: i64,
+    pub msg_id: Option<i64>,
     /// 消息的数据ID（消息如果来自文章时才有）
     pub msg_data_id: Option<String>,
     /// 多图文时第几篇文章，从1开始（消息如果来自文章时才有）
@@ -381,6 +388,60 @@ pub enum WxMessageData {
         /// 视频消息缩略图的媒体id，可以调用多媒体文件下载接口拉取数据。
         thumb_media_id: String,
     },
+    /// 事件
+    Event {
+        /// 事件类型
+        event: WxEvent,
+    },
+}
+
+/// 微信事件类型
+#[derive(Debug)]
+pub enum WxEventType {
+    /// 订阅
+    Subscribe,
+    /// 取消订阅
+    Unsubscribe,
+    /// 扫码
+    Scan,
+}
+
+impl FromStr for WxEventType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "subscribe" => Ok(WxEventType::Subscribe),
+            "unsubscribe" => Ok(WxEventType::Unsubscribe),
+            "SCAN" => Ok(WxEventType::Scan),
+            _ => anyhow::bail!("Unknown event type: {s}"),
+        }
+    }
+}
+
+impl Display for WxEventType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                WxEventType::Subscribe => "subscribe",
+                WxEventType::Unsubscribe => "unsubscribe",
+                WxEventType::Scan => "SCAN",
+            }
+        )
+    }
+}
+
+/// 微信事件数据
+#[derive(Debug)]
+pub struct WxEvent {
+    /// 事件类型
+    pub event: WxEventType,
+    /// 事件 KEY 值
+    pub event_key: Option<String>,
+    /// 二维码的ticket，可用来换取二维码图片
+    pub ticket: Option<String>,
 }
 
 impl From<WxMessage> for WxRawXmlMessage {
@@ -409,6 +470,9 @@ impl From<WxMessage> for WxRawXmlMessage {
                 msg_id,
                 msg_data_id,
                 idx,
+                event: None,
+                event_key: None,
+                ticket: None,
             },
             WxMessageData::Image { pic_url, media_id } => WxRawXmlMessage {
                 to_user_name,
@@ -424,6 +488,9 @@ impl From<WxMessage> for WxRawXmlMessage {
                 msg_id,
                 msg_data_id,
                 idx,
+                event: None,
+                event_key: None,
+                ticket: None,
             },
             WxMessageData::Video {
                 media_id,
@@ -442,6 +509,9 @@ impl From<WxMessage> for WxRawXmlMessage {
                 msg_id,
                 msg_data_id,
                 idx,
+                event: None,
+                event_key: None,
+                ticket: None,
             },
             WxMessageData::Voice {
                 media_id,
@@ -461,6 +531,9 @@ impl From<WxMessage> for WxRawXmlMessage {
                 msg_id,
                 msg_data_id,
                 idx,
+                event: None,
+                event_key: None,
+                ticket: None,
             },
             WxMessageData::ShortVideo {
                 media_id,
@@ -479,6 +552,34 @@ impl From<WxMessage> for WxRawXmlMessage {
                 msg_id,
                 msg_data_id,
                 idx,
+                event: None,
+                event_key: None,
+                ticket: None,
+            },
+            WxMessageData::Event {
+                event:
+                    WxEvent {
+                        event,
+                        event_key: key,
+                        ticket,
+                    },
+            } => WxRawXmlMessage {
+                to_user_name,
+                from_user_name,
+                create_time,
+                msg_type: WxMessageType::Event,
+                content: None,
+                pic_url: None,
+                media_id: None,
+                format: None,
+                recognition: None,
+                thumb_media_id: None,
+                msg_id: None,
+                msg_data_id: None,
+                idx: None,
+                event: Some(event.to_string()),
+                event_key: key,
+                ticket,
             },
         }
     }
@@ -526,6 +627,16 @@ impl TryFrom<WxRawXmlMessage> for WxMessage {
                 thumb_media_id: raw_msg.thumb_media_id.ok_or_else(|| {
                     anyhow::anyhow!("Missing thumb_media_id for short video message")
                 })?,
+            },
+            WxMessageType::Event => WxMessageData::Event {
+                event: WxEvent {
+                    event: raw_msg
+                        .event
+                        .ok_or_else(|| anyhow::anyhow!("Missing event for event message"))?
+                        .parse()?,
+                    event_key: raw_msg.event_key,
+                    ticket: raw_msg.ticket,
+                },
             },
         };
         Ok(WxMessage {
