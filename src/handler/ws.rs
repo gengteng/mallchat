@@ -27,7 +27,7 @@ pub async fn websocket_on_connect(
     Extension(wx_client): Extension<WxClient>,
 ) -> impl IntoResponse {
     let (id, receiver) = session_manager.accept(addr);
-    tracing::info!("Websocket connection from {}", addr);
+    tracing::info!(%addr, %id, "Websocket connection established.");
     ws.on_upgrade(move |socket| handle_websocket(id, addr, socket, receiver, wx_client))
 }
 
