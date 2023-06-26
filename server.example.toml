@@ -4,6 +4,8 @@ port = 8080
 jwt_secret = "omOFP+Ejj/r+u4XeHr+KImZNtP0AlNqgvjLe3C5qics="
 
 [wx]
+# 微信回调域
+callback_url = "http://localhost:8080"
 # 微信公众平台 AppID
 app_id = "xxxxxxxxxx"
 # 微信公众平台 AppSecret

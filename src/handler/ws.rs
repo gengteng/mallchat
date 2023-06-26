@@ -150,9 +150,9 @@ async fn handle_websocket(
 #[derive(Debug, Deserialize)]
 pub struct Req {
     /// 请求类型
-    r#type: ReqType,
+    pub r#type: ReqType,
     /// 请求数据
-    data: Option<String>,
+    pub data: Option<String>,
 }
 
 /// WebSocket 请求类型
@@ -182,8 +182,10 @@ pub enum RespType {
 /// WebSocket 响应
 #[derive(Debug, Serialize)]
 pub struct Resp<T> {
-    r#type: RespType,
-    data: T,
+    /// 响应类型
+    pub r#type: RespType,
+    /// 响应数据
+    pub data: T,
 }
 
 /// 登录 Url
@@ -255,6 +257,17 @@ impl SessionManager {
             },
         );
         (ws_id, receiver)
+    }
+
+    /// 获取某个连接的引用
+    pub async fn try_send<T: Serialize>(&self, id: usize, resp: &Resp<T>) -> anyhow::Result<bool> {
+        if let Some(pair) = self.sessions.get_mut(&id) {
+            pair.sender
+                .send(Message::Text(serde_json::to_string(resp)?))
+                .await?;
+        }
+
+        Ok(false)
     }
 }
 

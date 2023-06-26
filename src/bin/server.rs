@@ -128,6 +128,9 @@ async fn shuttle_main(
         .get("WX_ENCODING_AES_KEY")
         .ok_or_else(|| anyhow::anyhow!("Failed to get WX_ENCODING_AES_KEY from secret store"))?;
     let wx_config = weixin::WxConfig {
+        callback_url: secret_store
+            .get("WX_CALLBACK_URL")
+            .ok_or_else(|| anyhow::anyhow!("Failed to get WX_CALLBACK_URL from secret store"))?,
         app_id: secret_store
             .get("WX_APP_ID")
             .ok_or_else(|| anyhow::anyhow!("Failed to get WX_APP_ID from secret store"))?,

@@ -19,6 +19,8 @@ use validator::Validate;
 /// 微信公众平台配置
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WxConfig {
+    /// 回调 URL
+    pub callback_url: String,
     /// 开发者ID
     pub app_id: String,
     /// 开发者密码
@@ -68,6 +70,10 @@ impl WxClient {
             client,
             access_token: Arc::new(RwLock::new(WxAccessToken::from(access_token))),
         })
+    }
+    /// 所有配置
+    pub fn config(&self) -> &WxConfig {
+        self.config.as_ref()
     }
     /// 开发者 ID
     pub fn app_id(&self) -> &str {
