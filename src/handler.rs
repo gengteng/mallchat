@@ -60,7 +60,7 @@ pub fn router<P: AsRef<std::path::Path>>(
     with_swagger: bool,
     static_files_path: P,
     storage: DatabaseConnection,
-    // cache: redis::Client,
+    cache: redis::Client,
     key: JwtKeys,
     wx_client: WxClient,
 ) -> Router {
@@ -82,7 +82,7 @@ pub fn router<P: AsRef<std::path::Path>>(
                 ),
         )
         .layer(Extension(storage))
-        // .layer(Extension(cache))
+        .layer(Extension(cache))
         .layer(Extension(key))
         .layer(Extension(wx_client))
         .layer(Extension(SessionManager::default()));

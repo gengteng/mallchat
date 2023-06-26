@@ -3,7 +3,6 @@
 
 pub mod cache;
 pub mod handler;
-#[cfg(not(feature = "shuttle"))]
 pub mod log;
 pub mod storage;
 pub mod weixin;

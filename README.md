@@ -17,7 +17,7 @@
 
 ## 开发
 
-* 本项目支持 **独立部署**、Docker 部署、**[shuttle](https://www.shuttle.rs/) 云端部署**。
+* 本项目支持 **独立部署**、Docker 部署。
 
 ### 本地启动
 
@@ -50,7 +50,7 @@ cargo run --no-default-features
 git clone https://github.com/gengteng/mallchat
 cd mallchat
 
-# 编译，生产发布需要加上 `--release`
+# 使用字节跳动的仓库镜像编译，使用 docker build -t mallchat -f CN.Dockerfile .
 docker build -t mallchat .
 
 # 将样例配置文件拷贝为正式配置文件
@@ -63,34 +63,6 @@ cp docker-compose.example.yml docker-compose.yml
 docker-compose -f docker-compose.yml up -d --build
 
 # 浏览器打开 http://localhost:8080/
-```
-
-### shuttle 部署
-
-**注意**： shuttle 生产环境目前无法正确注入 MySQL，所以不建议使用。
-
-[shuttle](https://www.shuttle.rs/) 的具体使用方法可在其主页点击 `Start Building` 按钮查看，需要使用 GitHub 登录。
-
-> 假设你要部署到 `https://$YOUR_PROJECT_NAME.shuttleapp.rs/` 。
-
-```shell
-# 拉取代码
-git clone https://github.com/gengteng/mallchat
-cd mallchat
-
-# 将样例配置文件拷贝为正式配置文件
-cp Secrets.example.toml Secrets.toml
-
-# 修改 Secrets.toml 中的配置（尤其是微信公众平台的配置）
-# vi Secrets.toml or use an editor
-
-# 启动你自己的项目
-cargo shuttle project start --name $YOUR_PROJECT_NAME
-
-# 部署
-cargo shuttle deploy --name $YOUR_PROJECT_NAME
-
-# 浏览器打开 https://$YOUR_PROJECT_NAME.shuttleapp.rs/
 ```
 
 ## 前端
@@ -111,7 +83,6 @@ cargo shuttle deploy --name $YOUR_PROJECT_NAME
 |  validator   | 合法性校验框架         |                                                                      |
 |   reqwest    | HTTP 客户端        |                                                                      |
 | parking_lot  | 高性能锁实现          |                                                                      |
-|   shuttle    | 云部署平台           | [https://www.shuttle.rs](https://www.shuttle.rs)                     |
 
 ## 协议
 
