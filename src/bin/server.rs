@@ -35,7 +35,7 @@ mod local {
 
         tracing::info!(?storage, "Connect to database.");
         // TODO use this storage
-        let _storage = storage.connect().await?;
+        let storage = storage.connect().await?;
 
         // TODO use this cache
         // tracing::info!(?cache, "Connect to redis.");
@@ -49,7 +49,8 @@ mod local {
         let addr = SocketAddr::from(([0, 0, 0, 0], http.port));
         tracing::info!(%addr, "Server start.");
 
-        let router = mallchat::handler::router(true, http.static_files_path, key, wx_client);
+        let router =
+            mallchat::handler::router(true, http.static_files_path, storage, key, wx_client);
         axum::Server::bind(&addr)
             .serve(router.into_make_service_with_connect_info::<SocketAddr>())
             .await?;
@@ -81,6 +82,7 @@ fn main() -> anyhow::Result<()> {
 mod shuttle {
     use mallchat::handler::auth::JwtKeys;
     use mallchat::weixin::WxClient;
+    use sea_orm::DatabaseConnection;
     use shuttle_runtime::async_trait;
     use shuttle_service::Error;
     use std::net::SocketAddr;
@@ -91,6 +93,7 @@ mod shuttle {
         pub(crate) static_files_path: PathBuf,
         pub(crate) jwt_keys: JwtKeys,
         pub(crate) wx_client: WxClient,
+        pub(crate) database: DatabaseConnection,
     }
 
     #[async_trait]
@@ -99,6 +102,7 @@ mod shuttle {
             let router = mallchat::handler::router(
                 self.with_swagger,
                 self.static_files_path,
+                self.database,
                 self.jwt_keys,
                 self.wx_client,
             );
@@ -115,6 +119,7 @@ mod shuttle {
 #[cfg(feature = "shuttle")]
 #[shuttle_runtime::main]
 async fn shuttle_main(
+    #[shuttle_aws_rds::MySql] pool: sqlx::MySqlPool,
     #[shuttle_static_folder::StaticFolder(folder = "html")] static_files_path: std::path::PathBuf,
     #[shuttle_secrets::Secrets] secret_store: shuttle_secrets::SecretStore,
 ) -> Result<shuttle::MallChatService, shuttle_runtime::Error> {
@@ -153,6 +158,7 @@ async fn shuttle_main(
     let service = shuttle::MallChatService {
         with_swagger: false,
         static_files_path,
+        database: sea_orm::SqlxMySqlConnector::from_sqlx_mysql_pool(pool),
         jwt_keys,
         wx_client,
     };

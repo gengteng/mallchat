@@ -6,6 +6,7 @@ use crate::weixin::WxClient;
 use axum::http::Request;
 use axum::routing::get;
 use axum::{Extension, Router};
+use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tower_http::services::ServeDir;
@@ -58,7 +59,7 @@ pub struct ApiDoc;
 pub fn router<P: AsRef<std::path::Path>>(
     with_swagger: bool,
     static_files_path: P,
-    // storage: DatabaseConnection,
+    storage: DatabaseConnection,
     // cache: redis::Client,
     key: JwtKeys,
     wx_client: WxClient,
@@ -80,7 +81,7 @@ pub fn router<P: AsRef<std::path::Path>>(
                         .latency_unit(LatencyUnit::Micros),
                 ),
         )
-        //.layer(Extension(storage))
+        .layer(Extension(storage))
         // .layer(Extension(cache))
         .layer(Extension(key))
         .layer(Extension(wx_client))
