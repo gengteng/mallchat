@@ -27,7 +27,7 @@ git clone https://github.com/gengteng/mallchat
 cd mallchat
 
 # 编译，生产发布需要加上 `--release`
-cargo build --no-default-features
+cargo build
 
 # 将样例配置文件拷贝为正式配置文件
 cp server.example.toml server.toml
@@ -36,7 +36,7 @@ cp server.example.toml server.toml
 # vi server.toml or use an editor
 
 # 启动
-cargo run --no-default-features
+cargo run
 # 或者 ./target/debug/mallchat 启动
 # 只要确保启动所在的当前目录有正确的 server.toml 即可
 

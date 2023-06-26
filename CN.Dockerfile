@@ -13,10 +13,10 @@ MAINTAINER "Geng Teng"
 
 COPY --from=planner /mallchat/recipe.json recipe.json
 # Build our project dependencies, not our application!
-RUN cargo chef cook --release --no-default-features --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 # Build our project
-RUN cargo build --release --no-default-features
+RUN cargo build --release
 
 FROM debian:buster-slim AS target
 WORKDIR /mallchat
