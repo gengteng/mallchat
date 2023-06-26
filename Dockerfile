@@ -17,7 +17,7 @@ COPY . .
 # Build our project
 RUN cargo build --release
 
-FROM debian:buster-slim AS target
+FROM debian:bullseye AS target
 WORKDIR /mallchat
 COPY --from=builder /mallchat/html html
 COPY --from=builder /mallchat/target/release/mallchat .
