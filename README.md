@@ -9,6 +9,8 @@
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/gengteng/mallchat/.github/workflows/main.yml?branch=main)](https://github.com/gengteng/mallchat/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gengteng/mallchat/badge.svg?branch=main)](https://coveralls.io/github/gengteng/mallchat?branch=main)
 
+[![Security Status](https://www.murphysec.com/platform3/v31/badge/1673713415187357696.svg)](https://www.murphysec.com/console/report/1673713414419800064/1673713415187357696)
+
 ----
 
 [WIP] 该项目处于开发中，功能不完整，欢迎贡献代码。

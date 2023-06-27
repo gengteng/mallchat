@@ -190,6 +190,48 @@ impl WxClient {
         let result: WxResult<QrCodeTicket> = resp.json().await?;
         result.into()
     }
+
+    /// 获取网页授权 Access Token
+    pub async fn get_webpage_authorization_access_token(
+        &self,
+        code: &str,
+    ) -> anyhow::Result<WxWebpageAccessToken> {
+        #[derive(Serialize)]
+        struct GetWebPageAuthorizationAccessToken<'a> {
+            appid: &'a str,
+            secret: &'a str,
+            code: &'a str,
+            grant_type: &'a str,
+        }
+
+        let params = GetWebPageAuthorizationAccessToken {
+            appid: self.app_id(),
+            secret: self.app_secret(),
+            code,
+            grant_type: "authorization_code",
+        };
+
+        let resp = self
+            .client
+            .get("https://api.weixin.qq.com/sns/oauth2/access_token")
+            .query(&params)
+            .send()
+            .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            anyhow::bail!("Response status is not OK: {}", status);
+        }
+
+        let access_token: WxWebpageAccessToken = resp.json().await?;
+
+        Ok(access_token)
+    }
+
+    /// 获取用户信息
+    pub async fn get_user_info(&self, _access_token: &str) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 /// 微信服务器消息参数
@@ -816,6 +858,27 @@ impl<T> From<WxResult<T>> for anyhow::Result<T> {
             )),
         }
     }
+}
+
+/// 网页授权access_token
+#[derive(Debug, Deserialize)]
+pub struct WxWebpageAccessToken {
+    /// 网页授权接口调用凭证,注意：此access_token与基础支持的access_token不同
+    pub access_token: String,
+    /// access_token接口调用凭证超时时间，单位（秒）
+    pub expires_in: u64,
+    /// 用户刷新access_token
+    pub refresh_token: String,
+    /// 用户唯一标识，请注意，在未关注公众号时，用户访问公众号的网页，也会产生一个用户和公众号唯一的OpenID
+    pub openid: String,
+    /// 用户授权的作用域，使用逗号（,）分隔
+    pub scope: String,
+    /// 是否为快照页模式虚拟账号，只有当用户是快照页模式虚拟账号时返回，值为1
+    #[serde(rename = "is_snapshotuser")]
+    pub is_snapshot_user: Option<i32>,
+    /// 用户统一标识（针对一个微信开放平台帐号下的应用，同一用户的 unionid 是唯一的），只有当scope为"snsapi_userinfo"时返回
+    #[serde(rename = "unionid")]
+    pub union_id: Option<String>,
 }
 
 #[cfg(test)]

@@ -11,8 +11,11 @@ use serde::{Deserialize, Serialize, Serializer};
 use utoipa::IntoParams;
 use validator::Validate;
 
-/// API 结果内部值
-pub type ApiResult<T> = Result<ApiValue<T>, ApiError>;
+/// Api 错误的结果
+pub type Result<T> = std::result::Result<T, ApiError>;
+
+/// API 结果，作为 JSON BODY 返回
+pub type ApiResult<T> = Result<ApiValue<T>>;
 
 /// API 错误
 #[derive(Debug, thiserror::Error)]
@@ -32,6 +35,12 @@ pub enum ApiError {
     /// 自定义错误
     #[error("Custom error ({0}) : {1}")]
     Custom(StatusCode, Cow<'static, str>),
+}
+
+impl From<anyhow::Error> for ApiError {
+    fn from(value: anyhow::Error) -> Self {
+        Self::Custom(StatusCode::INTERNAL_SERVER_ERROR, value.to_string().into())
+    }
 }
 
 impl ApiError {
@@ -69,7 +78,7 @@ impl ApiError {
 }
 
 impl Serialize for ApiError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -152,7 +161,7 @@ impl<T: Serialize> IntoResponse for ApiValue<T> {
 }
 
 impl<T: Serialize> Serialize for ApiValue<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
     {

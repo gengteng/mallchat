@@ -62,12 +62,17 @@ pub struct CallBackParam {
 /// 认证回调
 #[utoipa::path(get, path = "/wx/portal/public/callBack")]
 pub async fn call_back(
-    Valid(Query(_param)): Valid<Query<WxServerParam<CallBackParam>>>,
-) -> impl IntoResponse {
+    Valid(Query(CallBackParam { code })): Valid<Query<CallBackParam>>,
+    Extension(wx_client): Extension<WxClient>,
+) -> super::api::Result<Redirect> {
+    let access_token = wx_client
+        .get_webpage_authorization_access_token(&code)
+        .await?;
+    let _user_info = wx_client.get_user_info(&access_token.access_token).await?;
     // WxOAuth2AccessToken accessToken = wxService.getOAuth2Service().getAccessToken(code);
     // WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, "zh_CN");
     // wxMsgService.authorize(userInfo);
-    Redirect::to("https://mp.weixin.qq.com/")
+    Ok(Redirect::to("https://mp.weixin.qq.com/"))
 }
 
 /// 微信请求接收参数
@@ -217,7 +222,7 @@ async fn handle_scan(
             tracing::error!(%error, %websocket_id, ?resp, "Failed to send response to websocket");
         }
     });
-    let callback_url = format!("{}/wx/portal/public/callBack", wx_config.app_id); // TODO use url
+    let callback_url = format!("{}/wx/portal/public/callBack", wx_config.callback_url); // TODO use url
     let encoded_callback_url = urlencoding::encode(&callback_url);
     let skip_url = format!("https://open.weixin.qq.com/connect/oauth2/authorize?appid={}&redirect_uri={}&response_type=code&scope=snsapi_userinfo&state=STATE#wechat_redirect", wx_config.app_id, encoded_callback_url);
     let message = WxMessage {
